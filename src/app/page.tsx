@@ -1,113 +1,127 @@
-import Image from "next/image";
+// src/app/page.tsx
+"use client";
 
-export default function Home() {
+import axios from "axios";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useOcid } from "../contexts/OcidContext"; // 대소문자를 정확히 맞춰서 import
+
+const Home = () => {
+  const [error, setError] = useState<string | null>(null);
+  const [worldImage, setWorldImage] = useState<string>("");
+  const [characterName, setCharacterName] = useState<string>("");
+  const [characterInfo, setCharacterInfo] = useState<any>(null);
+  const apiKey: string | undefined = process.env.NEXT_PUBLIC_MAPLE_API_KEY;
+  const router = useRouter();
+  const { ocid, setOcid } = useOcid();
+
+  const fetchCharacterData = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (apiKey) {
+      axios
+        .get("https://open.api.nexon.com/maplestory/v1/id", {
+          headers: {
+            "x-nxopen-api-key": apiKey,
+          },
+          params: {
+            character_name: characterName,
+          },
+        })
+        .then((response) => {
+          setOcid(response.data.ocid);
+          setError(null);
+        })
+        .catch((error) => {
+          setError("Error fetching data: " + error.message);
+        });
+    } else {
+      setError("API key is not defined");
+    }
+  };
+
+  useEffect(() => {
+    if (ocid && apiKey) {
+      axios
+        .get("https://open.api.nexon.com/maplestory/v1/character/basic", {
+          headers: {
+            "x-nxopen-api-key": apiKey,
+          },
+          params: {
+            ocid: ocid,
+          },
+        })
+        .then((res) => {
+          setCharacterInfo(res.data);
+          setWorldImage(`./server/${res.data.world_name}.png`);
+          setError(null);
+        })
+        .catch((error) => {
+          setError("Error fetching character info: " + error.message);
+        });
+    }
+  }, [ocid, apiKey]);
+
+  const goToCharacterPage = (characterInfo: any) => {
+    console.log(characterInfo.character_name);
+    router.push(`charater/${characterInfo.character_name}`);
+  };
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">src/app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
-
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
+    <div className="w-[500px] ml-auto mr-auto border border-gray-500 text-center rounded-2xl mt-[100px]">
+      <h1 className="p-4">유저 검색</h1>
+      <form onSubmit={fetchCharacterData}>
+        <input
+          className="border border-black px-1 rounded-2xl text-center w-[150px]"
+          type="text"
+          value={characterName}
+          onChange={(e) => setCharacterName(e.target.value)}
+          placeholder="닉네임 입력"
         />
-      </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
+        <button
+          type="submit"
+          className="ml-2 border border-black px-1 rounded-2xl hover:bg-gray-400"
         >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
+          검색
+        </button>
+      </form>
 
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+      {error && <div>{error}</div>}
+      {!ocid && !error && (
+        <div className="p-4">
+          캐릭터 명을 입력하시면 캐릭터 정보가 나옵니다!
+          <br />
+          <span className="text-sm text-[#292453]">
+            오래 접속하지 않은 캐릭터는 검색이 되지 않습니다.
+          </span>
+        </div>
+      )}
+      {characterInfo && (
+        <div className="p-4 mt-10">
+          {characterInfo ? (
+            <div>
+              <h2>캐릭터 정보</h2>
+              <div className="flex items-center justify-center mr-4">
+                <img src={characterInfo.character_image} alt="없는뎅?" />
+                <p>닉네임 : {characterInfo.character_name}</p>
+              </div>
+              <p className="flex justify-center">
+                서버 : <img src={worldImage} alt="사진없음" className="w-6 p-1" />
+                {characterInfo.world_name}
+              </p>
+              <p>레벨 : {characterInfo.character_level}</p>
+              <p>경험치량 : {characterInfo.character_exp}</p>
+              <p>현재 경험치 : {characterInfo.character_exp_rate} / 100%</p>
+              <button className="text-xs mt-5" onClick={() => goToCharacterPage(characterInfo)}>
+                캐릭터 정보 자세히 보기 {'>'}
+              </button>
+            </div>
+          ) : (
+            <div>로딩중...</div>
+          )}
+        </div>
+      )}
+    </div>
   );
-}
+};
+
+export default Home;
