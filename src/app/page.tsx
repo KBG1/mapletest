@@ -5,6 +5,7 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useOcid } from "../contexts/OcidContext"; // 대소문자를 정확히 맞춰서 import
+import { fetchCharacterData } from "@/utils/axios";
 
 const Home = () => {
   const [error, setError] = useState<string | null>(null);
@@ -15,30 +16,22 @@ const Home = () => {
   const router = useRouter();
   const { ocid, setOcid } = useOcid();
 
-  const fetchCharacterData = (e: React.FormEvent) => {
+  //캐릭터의 닉네임에 해당하는 ocid를 찾는다.
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (apiKey) {
-      axios
-        .get("https://open.api.nexon.com/maplestory/v1/id", {
-          headers: {
-            "x-nxopen-api-key": apiKey,
-          },
-          params: {
-            character_name: characterName,
-          },
-        })
-        .then((response) => {
-          setOcid(response.data.ocid);
-          setError(null);
-        })
-        .catch((error) => {
-          setError("Error fetching data: " + error.message);
-        });
+
+    //undefined가 아닐때만 캐릭터 정보를 불러와야됨
+    const { ocid, error } = await fetchCharacterData(apiKey, characterName);
+
+    if (error) {
+      setError(error);
     } else {
-      setError("API key is not defined");
+      setOcid(ocid);
+      setError(null);
     }
   };
 
+  //캐릭터의 요약 정보를 불러온다
   useEffect(() => {
     if (ocid && apiKey) {
       axios
@@ -61,15 +54,17 @@ const Home = () => {
     }
   }, [ocid, apiKey]);
 
+  //캐릭터 상세페이지로 이동
   const goToCharacterPage = (characterInfo: any) => {
-    console.log(characterInfo.character_name);
-    router.push(`charater/${characterInfo.character_name}`);
+    const username = encodeURIComponent(characterInfo.character_name);
+    console.log(username);
+    router.push(`character/${username}`);
   };
 
   return (
     <div className="w-[500px] ml-auto mr-auto border border-gray-500 text-center rounded-2xl mt-[100px]">
       <h1 className="p-4">유저 검색</h1>
-      <form onSubmit={fetchCharacterData}>
+      <form onSubmit={handleSubmit}>
         <input
           className="border border-black px-1 rounded-2xl text-center w-[150px]"
           type="text"
@@ -105,14 +100,18 @@ const Home = () => {
                 <p>닉네임 : {characterInfo.character_name}</p>
               </div>
               <p className="flex justify-center">
-                서버 : <img src={worldImage} alt="사진없음" className="w-6 p-1" />
+                서버 :{" "}
+                <img src={worldImage} alt="사진없음" className="w-6 p-1" />
                 {characterInfo.world_name}
               </p>
               <p>레벨 : {characterInfo.character_level}</p>
               <p>경험치량 : {characterInfo.character_exp}</p>
               <p>현재 경험치 : {characterInfo.character_exp_rate} / 100%</p>
-              <button className="text-xs mt-5" onClick={() => goToCharacterPage(characterInfo)}>
-                캐릭터 정보 자세히 보기 {'>'}
+              <button
+                className="text-xs mt-5"
+                onClick={() => goToCharacterPage(characterInfo)}
+              >
+                캐릭터 정보 자세히 보기 {">"}
               </button>
             </div>
           ) : (
